@@ -1,7 +1,32 @@
-import { useEffect } from 'react';
-import UserSearch from './UserSearch';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
+  const [username, setUsername] = useState('');
+  const [userData, setUserData] = useState(null);
+  const [logstart, setLogstart] = useState(0);
+  const [logend, setLogend] = useState(0);
+
+
+  async function handleButton(endpoint) {
+    try {
+      if (!username) {
+        console.error('Error: username is required');
+        setUserData(null);
+        return;
+      }
+      // fetch data from API endpoint by sending the username and the logstart and logend times in the body
+      console.log(username, logstart, logend);
+      const response = await fetch(`/api/${endpoint}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, logstart, logend}), });
+      if (response.ok) {
+        setUserData(await response.json());
+      } else {
+        setUserData(null);
+        console.error('Error:', await response.json().error);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }
   // wait for window to load before running script
   const zeroPad = (num, places) => String(num).padStart(places, '0')
   useEffect(() => {
@@ -23,6 +48,8 @@ export default function Home() {
       clearInterval(Interval);
       if (!started) {
           startTime = new Date();
+          setLogstart(startTime);
+          console.log("started at: " + startTime);
           Interval = setInterval(function () {
               timeDiff = new Date() - startTime;
               days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
@@ -39,7 +66,9 @@ export default function Home() {
           buttonStartStop.innerHTML = "Stop";
       } else {
           buttonStartStop.innerHTML = "Start";
-          console.log("days: " + days + " hours: " + hours + " minutes: " + minutes + " seconds: " + seconds + " timeDiff ms: " + timeDiff);
+          setLogend(new Date());
+          console.log("stopped at: " + new Date());
+          console.log("time difference: " + timeDiff/1000 + " seconds");
       }
       started = !started;
   }
@@ -120,7 +149,14 @@ export default function Home() {
       </style>
       <div style={{ display: "flex", flexDirection: "column", textAlignLast: "center" }}>
         <h1>User Data Search</h1>
-        <UserSearch />
+        <div id="userSearch">
+        <input type="text" placeholder="Enter username" value={username} onChange={(e) => setUsername(e.target.value)} />
+        <button onClick={() => handleButton("getUser")}>Get User Data</button>
+        <button onClick={() => handleButton("setUser")}>Set User Data</button>
+        {userData && (
+          <div> <h2>User Data</h2> <pre>{JSON.stringify(userData, null, 2)}</pre> </div>
+        )}
+      </div>
       </div>
       <div className="wrapper">
         <h1>JavaScript Stopwatch</h1>
